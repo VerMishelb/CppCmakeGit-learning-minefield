@@ -37,3 +37,8 @@ git push -u origin master # "master" here is probably the remote's branch, so it
 ```
 DON'T push -f, this will kill anything that's in the remote repo.  
 On Linux it'll forget your login credentials every single time. Have to work around that with some side software iirc.
+
+# VSCode extensions
+Compared to popular choices these actually work and work correctly.  
+Markdown preview & tools (ctrl-shift-v for preview) https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one  
+CMake syntax highlight https://marketplace.visualstudio.com/items?itemName=KylinIdeTeam.cmake-intellisence  
