@@ -1,2 +1,10 @@
 # Git
+Right after installation Git does not know who I am, so the first thing to do is to
+git config --global user.email "my@epic.email"
+git config --global user.name "VerMishelb"
+It also tries to construct an automatic e-mail of username@NAME-PC.(none) [is "none" a domain?], but obviously fails. GitHub's long e-mail from account settings works.
+Without these it won't let you make a commit.
+
+Moreover, as I am using cyrillic, git config --global core.quotepath false is a must. Plus change the mintty terminal settings, "Text", change the font to one that eats Unicode, set the locale to C, encoding to UTF8.
+
 gir rm --cached — Remove a file from the repository without touching local copy.
