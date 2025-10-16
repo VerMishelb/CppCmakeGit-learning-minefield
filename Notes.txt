@@ -1,0 +1,2 @@
+# Git
+gir rm --cached — Remove a file from the repository without touching local copy.
