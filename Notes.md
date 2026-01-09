@@ -19,7 +19,7 @@ After creating a repository in GitHub:
 git init
 git add .
 git commit -m "Initial"
-git branch -M master
+git branch -M master # it's worth noting that "master" is my default branch name, not "main" how it currently is for new accounts.
 git remote add origin https://github.com/VerMishelb/CppCmakeGit-learning-minefield.git
 git push -u origin master
 ```
@@ -40,5 +40,5 @@ On Linux it'll forget your login credentials every single time. Have to work aro
 
 # VSCode extensions
 Compared to popular choices these actually work and work correctly.  
-Markdown preview & tools (ctrl-shift-v for preview) https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one  
-CMake syntax highlight https://marketplace.visualstudio.com/items?itemName=KylinIdeTeam.cmake-intellisence  
+* Markdown preview & tools (`Ctrl-Shift-V` for preview) https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one  
+* CMake syntax highlight https://marketplace.visualstudio.com/items?itemName=KylinIdeTeam.cmake-intellisence  
