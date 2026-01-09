@@ -12,4 +12,9 @@
 *.exe
 *.dll
 *.lib
+
 *.elf
+*.o
+*.so
+
+**/build/**

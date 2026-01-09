@@ -1,0 +1,1 @@
+`first-project` https://vermishelb.neocities.org/ru/cpp/index.html#first-program
