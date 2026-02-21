@@ -11,7 +11,7 @@ git config --global core.quotepath false # disables Unicode symbols being displa
 ```
 Mintty terminal settings, "Text", change the font to one that eats Unicode, set the locale to C, encoding to UTF-8. Necessary to fix Cyrillic.
 ```sh
-gir rm --cached # Remove a file from the repository without touching local copy.
+git rm --cached # Remove a file from the repository without touching the local copy.
 ```
 
 After creating a repository in GitHub:
