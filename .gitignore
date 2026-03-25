@@ -16,5 +16,6 @@
 *.elf
 *.o
 *.so
+*.pdb
 
 **/build/**
