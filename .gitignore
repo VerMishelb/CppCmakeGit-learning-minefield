@@ -19,3 +19,5 @@
 *.pdb
 
 **/build/**
+
+.vscode/

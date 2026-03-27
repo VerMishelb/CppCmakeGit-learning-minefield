@@ -1,5 +1,5 @@
-#ifndef _common_h_
-#define _common_h_
+#ifndef common_h_
+#define common_h_
 
 const char* STR_INSTRUCTIONS =
 R"(Call as "app.exe <UTF-8 string>". This app does the following:
@@ -12,4 +12,4 @@ R"(Call as "app.exe <UTF-8 string>". This app does the following:
 
 const char* STR_R_UTF8 = R"(This is a UTF-8 example string: здесь много сложных букв!)";
 
-#endif
+#endif // common_h_
