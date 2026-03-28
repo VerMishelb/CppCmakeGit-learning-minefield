@@ -16,7 +16,10 @@
 
 #define MIRROR_STDOUT_TO_A_FILE
 // #define SETLOCALE_UTF8_ENABLED
-#define CHANGE_CP_ENABLED
+// #define CHANGE_CP_ENABLED
+#define PRINT_UTF8
+#define PRINT_1251
+#define PRINT_866
 
 // ~User options
 
@@ -116,13 +119,15 @@ void InputTest() {
     allout(<< "Input test! Enter your string:" << std::endl);
     std::string str{};
     std::getline(std::cin, str);
-    CIN_STATE("cin state after cin: ");
+    // std::cin >> str;
+    // std::cin.ignore(1, '\n');
+    // CIN_STATE("cin state after cin: ");
     allout(<< "\nEntered string:" << std::endl << (str) << std::endl);
 }
 
 void pause() {
     PRINT_FUNC;
-    std::cout << "Press Enter to exit...\n" << '\n';
+    std::cout << "Press Enter to exit...\n";
     std::cin.ignore(max_stream_size, '\n');
 }
 
@@ -196,19 +201,25 @@ About this application:
 */
 
 int main(int argc, char **argv) {
+    // std::setlocale(LC_ALL, ".utf8");
 #ifdef SETLOCALE_UTF8_ENABLED
-    std::locale::global(std::locale(".utf-8")); // also does std::setlocale(LC_ALL, ".utf-8");
-    std::cout << "SETLOCALE_UTF8_ENABLED.\nCurrent locale std::setlocale(LC_ALL, nullptr)=" << std::setlocale(LC_ALL, nullptr) << std::endl;
+    // setvbuf(stdout, nullptr, _IOFBF, 1000);
+    std::locale::global(std::locale(".utf8")); // also does std::setlocale(LC_ALL, ".utf8");
     ofile.imbue(std::locale());
+    ifile.imbue(std::locale());
     std::cout.imbue(std::locale());
+    std::cin.imbue(std::locale());
+    std::cout << "SETLOCALE_UTF8_ENABLED defined.\nCurrent locale std::setlocale(LC_ALL, nullptr)=" << std::setlocale(LC_ALL, nullptr) << std::endl;
     std::cout << "New locale: std::cout.getloc().name()=" << std::cout.getloc().name() << " global=" << std::locale().name() << std::endl;
 #endif // SETLOCALE_UTF8_ENABLED
 #ifdef CHANGE_CP_ENABLED
     std::cout << "CHANGE_CP_ENABLED defined. Changing CP to 65001." << std::endl;
     UINT original_cp{GetConsoleCP()};
     UINT original_output_cp{GetConsoleOutputCP()};
+    std::cout << "original_cp=" << original_cp << "\noriginal_output_cp=" << original_output_cp << std::endl;
     if (!SetConsoleCP(CP_UTF8)) { std::cout << "SetConsoleCP(CP_UTF8) failed: " << GetLastError() << std::endl; }
     if (!SetConsoleOutputCP(CP_UTF8)) { std::cout << "SetConsoleOutputCP(CP_UTF8) failed:" << GetLastError() << std::endl; }
+    setvbuf(stdout, nullptr, _IOFBF, 1000);
 #endif // CHANGE_CP_ENABLED
 
     fs::path workdir{fs::current_path()};
@@ -219,7 +230,7 @@ int main(int argc, char **argv) {
     // obuf = std::cout.rdbuf(ofile.rdbuf());
     // #endif
 
-    ofile.open(workdir/"1-out.txt", std::ios_base::trunc);
+    ofile.open(workdir/"1-out.txt", std::ios_base::trunc | std::ios_base::binary);
     if (!ofile) { std::cout << "Could not open/create " << (workdir/"1-out.txt") << std::endl; }
     ifile.open(workdir/"1-in.txt");
     if (!ifile) { std::cout << "Could not open " << (workdir/"1-in.txt") << std::endl; }
@@ -228,11 +239,17 @@ int main(int argc, char **argv) {
     
     std::cout << STR_INSTRUCTIONS << std::endl;
 
-    ListSupportedCodepages();    
+    ListSupportedCodepages();
+    #ifdef PRINT_UTF8
     PrintUTF8();
     PrintUTF8data();
+    #endif
+    #ifdef PRINT_1251
     PrintCP1251data();
+    #endif
+    #ifdef PRINT_866
     PrintOEM866data();
+    #endif
     PrintArgs(argc, argv);
     InputTest();
 

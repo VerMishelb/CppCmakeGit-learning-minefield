@@ -11,7 +11,7 @@ project(unicode-mess
 # Configurable options #
 ########################
 
-option(USE_MANIFEST "Use manifest to declare UTF-8 active codepage. Only affects Win10 1903+." OFF)
+# option(USE_MANIFEST "Use manifest to declare UTF-8 active codepage. Only affects Win10 1903+." OFF)
 #[[
 4.2 added new syntax:
 set(CACHE{<variable>} [TYPE <type>] [HELP <helpstring>...] [FORCE] VALUE [<value>...])
@@ -41,11 +41,72 @@ endif()
 # Targets #
 ###########
 
-add_executable(basic
-    src/1-cout-string.cpp
-    $<$<BOOL:${USE_MANIFEST}>:"src/Test.exe.manifest">
+add_library(texts STATIC)
+target_sources(texts
+PRIVATE
     src/text_1251.c
     src/text_oem.c
     src/text_utf8.c
+PUBLIC
+    FILE_SET HEADERS
+    BASE_DIRS
+        src
+    FILES
+        src/text_1251.h
+        src/text_oem.h
+        src/text_utf8.h
 )
-target_include_directories(basic PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+# // #define SETLOCALE_UTF8_ENABLED
+# // #define CHANGE_CP_ENABLED
+# m - manifest
+# l - setlocale
+# s - SetConsole[Output]CP
+
+set(TG_NAME basic)
+add_executable(${TG_NAME} src/1-cout-string.cpp)
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+set(TG_NAME basic-l)
+add_executable(${TG_NAME} src/1-cout-string.cpp)
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_compile_definitions(${TG_NAME} PRIVATE SETLOCALE_UTF8_ENABLED)
+
+set(TG_NAME basic-s)
+add_executable(${TG_NAME} src/1-cout-string.cpp)
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_compile_definitions(${TG_NAME} PRIVATE CHANGE_CP_ENABLED)
+
+set(TG_NAME basic-ls)
+add_executable(${TG_NAME} src/1-cout-string.cpp)
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_compile_definitions(${TG_NAME} PRIVATE SETLOCALE_UTF8_ENABLED CHANGE_CP_ENABLED)
+
+
+
+set(TG_NAME basic-m)
+add_executable(${TG_NAME} src/1-cout-string.cpp "src/Test.exe.manifest")
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+
+set(TG_NAME basic-ml)
+add_executable(${TG_NAME} src/1-cout-string.cpp src/Test.exe.manifest)
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_compile_definitions(${TG_NAME} PRIVATE SETLOCALE_UTF8_ENABLED)
+
+set(TG_NAME basic-ms)
+add_executable(${TG_NAME} src/1-cout-string.cpp src/Test.exe.manifest)
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_compile_definitions(${TG_NAME} PRIVATE CHANGE_CP_ENABLED)
+
+set(TG_NAME basic-mls)
+add_executable(${TG_NAME} src/1-cout-string.cpp src/Test.exe.manifest)
+target_link_libraries(${TG_NAME} PRIVATE texts)
+target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+target_compile_definitions(${TG_NAME} PRIVATE SETLOCALE_UTF8_ENABLED CHANGE_CP_ENABLED)
