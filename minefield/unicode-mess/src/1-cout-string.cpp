@@ -8,6 +8,7 @@
 #include <Windows.h>
 #undef min // ↑ This caused those undefs.
 #undef max
+#include <print>
 #include "common.h"
 
 //////////////////
@@ -33,6 +34,12 @@
 #define PRINT_FUNC allout(<< "\n### " << __func__ << " ###\n");
 #define CIN_STATE(msg) allout(<< (msg) << std::cin.rdstate() << " (bad, fail, eof)=" << std::cin.badbit << std::cin.failbit << std::cin.eofbit <<  '\n');
 
+#ifdef MANIFEST_ENABLED
+#define ACP2U(x) (x)
+#else
+#define ACP2U(x) (Ansi2utf(x))
+#endif // MANIFEST_ENABLED
+
 namespace fs = std::filesystem;
 std::ofstream ofile{};
 std::ifstream ifile{};
@@ -55,7 +62,7 @@ std::string Ansi2utf(const std::string &src_ansi) {
     // Null-terminated wchar_t* is 00 00 on Windows, 00 00 00 00 everywhere else.
 
     // Ansi (1251) to WTF
-    int tmp_wstr_size {MultiByteToWideChar(CP_ACP, NULL, src_ansi.data(), src_ansi.size()+1, nullptr, NULL)};
+    int tmp_wstr_size {MultiByteToWideChar(CP_ACP, NULL, src_ansi.data(), src_ansi.size(), nullptr, NULL)};
     // allout(<< "Ansi2utf: tmp_wstr_size=" << tmp_wstr_size << " for src_ansi=" << src_ansi << std::endl);
     auto tmp_wstr = std::make_unique<wchar_t[]>(tmp_wstr_size);
     MultiByteToWideChar(CP_ACP, NULL, src_ansi.data(), src_ansi.size(), tmp_wstr.get(), tmp_wstr_size);
@@ -72,16 +79,51 @@ std::string Ansi2utf(const std::string &src_ansi) {
 // Tests //
 ///////////
 
+void PrintCPInfo(unsigned int cp) {
+    CPINFOEXA cp_info{};
+    if (!GetCPInfoExA(cp, 0, &cp_info)) {
+        allout(<< "GetCPInfoExA() failed: " << GetLastError() << std::endl);
+        return;
+    };
+
+    char unicode_default_char[4]={};
+    mbstate_t mbstate{};
+    size_t retval{};
+    wcrtomb_s(&retval, unicode_default_char, cp_info.UnicodeDefaultChar, &mbstate);
+
+    allout(<<
+        "cp_info.CodePage=" <<
+        cp_info.CodePage <<
+        "\ncp_info.CodePageName=" <<
+        ACP2U(cp_info.CodePageName) << 
+        "\ncp_info.DefaultChar=" <<
+        cp_info.DefaultChar <<
+        "\ncp_info.LeadByte=" <<
+        cp_info.LeadByte <<
+        "\ncp_info.MaxCharSize=" <<
+        cp_info.MaxCharSize <<
+        "\nunicode_default_char=" <<
+        unicode_default_char << std::endl;
+    );
+}
+
 void ListSupportedCodepages() {
     PRINT_FUNC;
     allout( << "Installed codepages:" << std::endl);
     EnumSystemCodePagesA(stupidCallback, CP_INSTALLED);
     allout( << "\nSupported codepages:" << std::endl);
     EnumSystemCodePagesA(stupidCallback, CP_SUPPORTED);
-    allout( << "\nIn CP=" << GetConsoleCP() << "\nOut CP=" << GetConsoleOutputCP() <<
-    "\nCurrent locale=" << std::setlocale(LC_ALL, nullptr) << std::endl <<
-    "ofile.getloc=" << ofile.getloc().name() << std::endl;
-    );
+
+    allout(<< std::endl << "\nCurrent stdin CP:\n");
+    PrintCPInfo(GetConsoleCP());
+    allout( << "\nCurrent stdout CP:\n");
+    PrintCPInfo(GetConsoleOutputCP());
+    allout( << "\nThread ACP:\n");
+    PrintCPInfo(CP_THREAD_ACP); // CP_THREAD_ACP
+    allout( << "\nCP_ACP:\n");
+    PrintCPInfo(CP_ACP);
+    allout(<< "\nCurrent locale=" << std::setlocale(LC_ALL, nullptr) << std::endl <<
+    "ofile.getloc=" << ofile.getloc().name() << std::endl);
 }
 
 int PrintUTF8() {
@@ -198,46 +240,52 @@ About this application:
 - For some reason, if both SETLOCALE_UTF8_ENABLED and CHANGE_CP_ENABLED are defined, the output of
   ListSupportedCodepages(), or rather GetConsole[Output]CP() specifically, is broken in the most hilarious way:
   it turns into "In CP=65�001", where the broken symbol is 0xC2.
+- Update on the previous one! C2 is a part of C2 A0 sequence, where A0 is... gone.
 */
 
 int main(int argc, char **argv) {
     // std::setlocale(LC_ALL, ".utf8");
-#ifdef SETLOCALE_UTF8_ENABLED
-    // setvbuf(stdout, nullptr, _IOFBF, 1000);
-    std::locale::global(std::locale(".utf8")); // also does std::setlocale(LC_ALL, ".utf8");
-    ofile.imbue(std::locale());
-    ifile.imbue(std::locale());
-    std::cout.imbue(std::locale());
-    std::cin.imbue(std::locale());
-    std::cout << "SETLOCALE_UTF8_ENABLED defined.\nCurrent locale std::setlocale(LC_ALL, nullptr)=" << std::setlocale(LC_ALL, nullptr) << std::endl;
-    std::cout << "New locale: std::cout.getloc().name()=" << std::cout.getloc().name() << " global=" << std::locale().name() << std::endl;
-#endif // SETLOCALE_UTF8_ENABLED
-#ifdef CHANGE_CP_ENABLED
-    std::cout << "CHANGE_CP_ENABLED defined. Changing CP to 65001." << std::endl;
-    UINT original_cp{GetConsoleCP()};
-    UINT original_output_cp{GetConsoleOutputCP()};
-    std::cout << "original_cp=" << original_cp << "\noriginal_output_cp=" << original_output_cp << std::endl;
-    if (!SetConsoleCP(CP_UTF8)) { std::cout << "SetConsoleCP(CP_UTF8) failed: " << GetLastError() << std::endl; }
-    if (!SetConsoleOutputCP(CP_UTF8)) { std::cout << "SetConsoleOutputCP(CP_UTF8) failed:" << GetLastError() << std::endl; }
-    setvbuf(stdout, nullptr, _IOFBF, 1000);
-#endif // CHANGE_CP_ENABLED
-
     fs::path workdir{fs::current_path()};
     std::cout << "Using files: " << (workdir/"1-out(-in).txt") << std::endl;
-
+    
     // #if FILES_FOR_CIN_COUT == 1
     // ibuf = std::cin.rdbuf(ifile.rdbuf());
     // obuf = std::cout.rdbuf(ofile.rdbuf());
     // #endif
-
+    
     ofile.open(workdir/"1-out.txt", std::ios_base::trunc | std::ios_base::binary);
     if (!ofile) { std::cout << "Could not open/create " << (workdir/"1-out.txt") << std::endl; }
     ifile.open(workdir/"1-in.txt");
     if (!ifile) { std::cout << "Could not open " << (workdir/"1-in.txt") << std::endl; }
     else { ibuf = std::cin.rdbuf(ifile.rdbuf()); }
+#ifdef SETLOCALE_UTF8_ENABLED
+    // setvbuf(stdout, nullptr, _IOFBF, 1000);
+    std::locale::global(std::locale("ru_RU.utf8")); // also does std::setlocale(LC_ALL, ".utf8");
+    allout(<< "Unicode A0 (C2 A0) (\u00A0) New locale: " << std::locale().name() << std::endl);
+    std::print("Print test: {}\n", 1234567890);
+    allout(<< "The 1234567890 test before imbue:\naaa " << 1234567890 << "aaa" << std::endl);
+    allout(.imbue(std::locale()));
+    allout(<< "Locale: " << std::locale().name());
+    std::print("Print test: {}\n", 1234567890);
+    allout(<< "The 1234567890 test after imbue:\naaa " << 1234567890 << "aaa" << std::endl);
+    allout(<< STR_INSTRUCTIONS << std::endl);
+    ifile.imbue(std::locale());
+    std::cin.imbue(std::locale());
+    std::cout << "SETLOCALE_UTF8_ENABLED defined.\nCurrent locale std::setlocale(LC_ALL, nullptr)=" << std::setlocale(LC_ALL, nullptr) << std::endl;
+    std::cout << "New locale: std::cout.getloc().name()=" << std::cout.getloc().name() << " global=" << std::locale().name() << std::endl;
+#endif // SETLOCALE_UTF8_ENABLED
+#ifdef CHANGE_CP_ENABLED
+    allout(<< "CHANGE_CP_ENABLED defined. Changing CP to 65001." << std::endl);
+    UINT original_cp{GetConsoleCP()};
+    UINT original_output_cp{GetConsoleOutputCP()};
+    allout(<< "original_cp=" << original_cp << "\noriginal_output_cp=" << original_output_cp << std::endl);
+    if (!SetConsoleCP(CP_UTF8)) { allout(<< "SetConsoleCP(CP_UTF8) failed: " << GetLastError() << std::endl); }
+    if (!SetConsoleOutputCP(CP_UTF8)) { allout(<< "SetConsoleOutputCP(CP_UTF8) failed:" << GetLastError() << std::endl); }
+#endif // CHANGE_CP_ENABLED
+#ifdef MANIFEST_ENABLED
+    allout(<< "MANIFEST_ENABLED" << std::endl);
+#endif
 
-    
-    std::cout << STR_INSTRUCTIONS << std::endl;
 
     ListSupportedCodepages();
     #ifdef PRINT_UTF8
