@@ -24,6 +24,8 @@ Commented out because I realised that there's also an option() command.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
@@ -42,5 +44,8 @@ endif()
 add_executable(basic
     src/1-cout-string.cpp
     $<$<BOOL:${USE_MANIFEST}>:"src/Test.exe.manifest">
+    src/text_1251.c
+    src/text_oem.c
+    src/text_utf8.c
 )
 target_include_directories(basic PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)

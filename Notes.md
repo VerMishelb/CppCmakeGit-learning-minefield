@@ -42,3 +42,7 @@ On Linux it'll forget your login credentials every single time. Have to work aro
 Compared to popular choices these actually work and work correctly.  
 * Markdown preview & tools (`Ctrl-Shift-V` for preview) https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one  
 * CMake syntax highlight https://marketplace.visualstudio.com/items?itemName=KylinIdeTeam.cmake-intellisence  
+
+# C++
+If you ever use `std::cin` with `>>`, make sure to call `std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');` after it,
+because otherwise it'll leave the `'\n'` and this will break next calls to `std::getline()` or `std::cin.get()`.
