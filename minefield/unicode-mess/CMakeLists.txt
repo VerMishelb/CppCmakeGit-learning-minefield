@@ -43,6 +43,12 @@ if (MSVC)
     add_compile_options("/utf-8" "/Zc:preprocessor")
 endif()
 
+##################
+# Side libraries #
+##################
+
+add_subdirectory(lib/fmt-12.1.0)
+
 ###########
 # Targets #
 ###########
@@ -126,24 +132,24 @@ if(${COMPILE_PRINT_TESTS})
 set(TG_NAME print)
 set(TG_SRC src/1-stdprint-string.cpp)
 add_executable(${TG_NAME} ${TG_SRC})
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 set(TG_NAME print-l)
 add_executable(${TG_NAME} ${TG_SRC})
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_compile_definitions(${TG_NAME} PRIVATE ${C_LOCALE_DEF})
 
 set(TG_NAME print-s)
 add_executable(${TG_NAME} ${TG_SRC})
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_compile_definitions(${TG_NAME} PRIVATE CHANGE_CP_ENABLED)
 
 set(TG_NAME print-ls)
 add_executable(${TG_NAME} ${TG_SRC})
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_compile_definitions(${TG_NAME} PRIVATE ${C_LOCALE_DEF} CHANGE_CP_ENABLED)
 
@@ -151,25 +157,25 @@ target_compile_definitions(${TG_NAME} PRIVATE ${C_LOCALE_DEF} CHANGE_CP_ENABLED)
 
 set(TG_NAME print-m)
 add_executable(${TG_NAME} ${TG_SRC} "src/Test.exe.manifest")
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_compile_definitions(${TG_NAME} PRIVATE MANIFEST_ENABLED)
 
 set(TG_NAME print-ml)
 add_executable(${TG_NAME} ${TG_SRC} src/Test.exe.manifest)
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_compile_definitions(${TG_NAME} PRIVATE MANIFEST_ENABLED ${C_LOCALE_DEF})
 
 set(TG_NAME print-ms)
 add_executable(${TG_NAME} ${TG_SRC} src/Test.exe.manifest)
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_compile_definitions(${TG_NAME} PRIVATE MANIFEST_ENABLED CHANGE_CP_ENABLED)
 
 set(TG_NAME print-mls)
 add_executable(${TG_NAME} ${TG_SRC} src/Test.exe.manifest)
-target_link_libraries(${TG_NAME} PRIVATE texts)
+target_link_libraries(${TG_NAME} PRIVATE texts fmt::fmt)
 target_include_directories(${TG_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_compile_definitions(${TG_NAME} PRIVATE MANIFEST_ENABLED ${C_LOCALE_DEF} CHANGE_CP_ENABLED)
 

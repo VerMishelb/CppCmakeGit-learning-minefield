@@ -320,10 +320,10 @@ int main(int argc, char **argv) {
     // obuf = std::cout.rdbuf(ofile.rdbuf());
     // #endif
     
-    ofile.open(workdir/"1-print-out.txt", std::ios_base::trunc | std::ios_base::binary);
-    if (!ofile) { std::cout << "Could not open/create " << (workdir/"1-print-out.txt") << std::endl; }
-    ifile.open(workdir/"1-print-in.txt");
-    if (!ifile) { std::cout << "Could not open " << (workdir/"1-print-in.txt") << std::endl; }
+    ofile.open(workdir/"1-out.txt", std::ios_base::trunc | std::ios_base::binary);
+    if (!ofile) { std::cout << "Could not open/create " << (workdir/"1-out.txt") << std::endl; }
+    ifile.open(workdir/"1-in.txt");
+    if (!ifile) { std::cout << "Could not open " << (workdir/"1-in.txt") << std::endl; }
     else { ibuf = std::cin.rdbuf(ifile.rdbuf()); }
 
 #ifdef SET_STDOUT_VBUF_ENABLED

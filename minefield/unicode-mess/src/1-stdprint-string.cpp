@@ -9,7 +9,12 @@
 #include <Windows.h>
 #undef min // ↑ This caused those undefs.
 #undef max
-#include <print>
+#include <exception>
+// #include <print>
+#include <fmt/base.h>
+#include <fmt/format.h>
+#include <fmt/std.h>
+#include <fmt/ranges.h>
 #include "common.h"
 
 //////////////////
@@ -21,12 +26,15 @@
 // #define SET_CPP_LOCALE ".utf8"
 // #define CHANGE_CP_ENABLED
 // #define MANIFEST_ENABLED // THIS IS DEFINED IN CMAKELISTS!
-#define SET_STDOUT_VBUF_ENABLED
+// #define SET_STDOUT_VBUF_ENABLED
 #define PRINT_UTF8
-#define PRINT_1251
-#define PRINT_866
+// #define PRINT_1251
+// #define PRINT_866
 
 // ~User options
+
+using fmt::print, fmt::format;
+// using std::print, std::format;
 
 #ifdef MIRROR_STDOUT_TO_A_FILE
     #define allout(arg) \
@@ -35,7 +43,7 @@
 #else
     #define allout(arg) std::cout arg;
 #endif // MIRROR_STDOUT_TO_A_FILE
-#define allprint(format_, ...) std::print(stdout, format_ __VA_OPT__(,) __VA_ARGS__);// ofile << std::format(format_##__VA_OPT__(,) __VA_ARGS__) << std::flush;
+#define allprint(format_, ...) print(stdout, format_ __VA_OPT__(,) __VA_ARGS__); ofile << format(format_ __VA_OPT__(,) __VA_ARGS__) << std::flush;
 #define PRINT_FUNC allprint("\n### {} ###\n", __func__);
 #define CIN_STATE(msg) allout(<< (msg) << std::cin.rdstate() << " (bad, fail, eof)=" << std::cin.badbit << std::cin.failbit << std::cin.eofbit <<  '\n');
 
@@ -80,7 +88,7 @@ BOOL stupidCallback(LPSTR cp) {
     return 1;
 }
 
-std::string Ansi2utf(const std::string &src_ansi) {
+std::string Ansi2utf(const std::string &src_ansi, UINT src_cp = CP_ACP) {
     if (src_ansi.empty()) {
         return std::string{};
     }
@@ -89,15 +97,20 @@ std::string Ansi2utf(const std::string &src_ansi) {
     // Null-terminated wchar_t* is 00 00 on Windows, 00 00 00 00 everywhere else.
 
     // Ansi (1251) to WTF
-    int tmp_wstr_size {MultiByteToWideChar(CP_ACP, NULL, src_ansi.data(), src_ansi.size(), nullptr, NULL)};
+    print("Crap catcher Ansi2utf() No{}\n", __COUNTER__);
+    int tmp_wstr_size {MultiByteToWideChar(src_cp, NULL, src_ansi.data(), src_ansi.size(), nullptr, NULL)};
+    print("Crap catcher Ansi2utf() No{}\n", __COUNTER__);
     // allout(<< "Ansi2utf: tmp_wstr_size=" << tmp_wstr_size << " for src_ansi=" << src_ansi << std::endl);
     auto tmp_wstr = std::make_unique<wchar_t[]>(tmp_wstr_size);
-    MultiByteToWideChar(CP_ACP, NULL, src_ansi.data(), src_ansi.size(), tmp_wstr.get(), tmp_wstr_size);
-
+    MultiByteToWideChar(src_cp, NULL, src_ansi.data(), src_ansi.size(), tmp_wstr.get(), tmp_wstr_size);
+    print("Crap catcher Ansi2utf() No{}\n", __COUNTER__);
+    
     // WTF to UTF-8
     int dst_utf_size {WideCharToMultiByte(CP_UTF8, NULL, tmp_wstr.get(), tmp_wstr_size, nullptr, 0, 0, 0)};
+    print("Crap catcher Ansi2utf() No{}\n", __COUNTER__);
     std::string dst_utf{ std::string(static_cast<size_t>(dst_utf_size), '\0')};
     WideCharToMultiByte(CP_UTF8, NULL, tmp_wstr.get(), tmp_wstr_size, dst_utf.data(), dst_utf_size, 0, 0);
+    print("Crap catcher Ansi2utf() No{}\n", __COUNTER__);
 
     return dst_utf;
 }
@@ -121,32 +134,45 @@ void unfuckCout() {
 ///////////
 
 void PrintCPInfo(unsigned int cp) {
+    print("Crap catcher No{}\n", __COUNTER__);
     CPINFOEXA cp_info{};
     if (!GetCPInfoExA(cp, 0, &cp_info)) {
         allprint("GetCPInfoExA() failed: {}\n", GetLastError());
         return;
     };
-
+    
     char unicode_default_char[4]={};
     mbstate_t mbstate{};
     size_t retval{};
+    print("Crap catcher No{}\n", __COUNTER__);
     wcrtomb_s(&retval, unicode_default_char, cp_info.UnicodeDefaultChar, &mbstate);
+    print("Crap catcher No{}\n", __COUNTER__);
+    
+    // WE CRASH HERE BEFORE THE ACP CALL (AND AFTER THE ACP CALL)
+    // allprint(
+    //     "cp_info.CodePage={}\n"
+    //     "cp_info.CodePageName={}\n"
+    //     "cp_info.DefaultChar={}\n"
+    //     "cp_info.LeadByte={}\n"
+    //     "cp_info.MaxCharSize={}\n"
+    //     "unicode_default_char={}\n",
+    //     cp_info.CodePage,
+    //     ACP2U(cp_info.CodePageName) ,
+    //     cp_info.DefaultChar, // this prints an array and this is likely wide char but I can't prove it.
+    //     cp_info.LeadByte,
+    //     cp_info.MaxCharSize,
+    //     unicode_default_char
+    // );
 
-    allprint(
-        "cp_info.CodePage={}\n"
-        "cp_info.CodePageName={}\n"
-        "cp_info.DefaultChar={}\n"
-        "cp_info.LeadByte={}\n"
-        "cp_info.MaxCharSize={}\n"
-        "unicode_default_char={}\n",
-        cp_info.CodePage,
-        ACP2U(cp_info.CodePageName) ,
-        cp_info.DefaultChar,
-        cp_info.LeadByte,
-        cp_info.MaxCharSize,
-        unicode_default_char
-    );
+    allprint("cp_info.CodePage={}\n",cp_info.CodePage);
+    allprint("cp_info.CodePageName={}\n",ACP2U(cp_info.CodePageName)); // Dies here specifically
+    allprint("cp_info.DefaultChar={}\n",cp_info.DefaultChar); // this prints an array and this is likely wide char but I can't prove it.)
+    allprint("cp_info.LeadByte={}\n",cp_info.LeadByte);
+    allprint("cp_info.MaxCharSize={}\n",cp_info.MaxCharSize);
+    allprint("unicode_default_char={}\n",unicode_default_char);
 
+    print("Crap catcher No{}\n", __COUNTER__);
+    
     unfuckCout();
 }
 
@@ -185,8 +211,8 @@ int PrintUTF8() {
 
 int PrintUTF8data() {
     PRINT_FUNC;
-    std::print("{:.200c}\n", data_text_utf8);
-    allprint("{:s}\n", data_text_utf8);
+    print("{}\n", data_text_utf8);
+    allprint("{}\n", data_text_utf8);
     unfuckCout();
     return 0;
 }
@@ -225,33 +251,38 @@ void InputTest() {
     // std::cin >> str;
     // std::cin.ignore(1, '\n');
     // CIN_STATE("cin state after cin: ");
-    allprint("\nEntered string:\n{}\nIn UTF-8:\n{}\n", (str), Ansi2utf(str));
+    allprint("\nEntered string:\n{}\nIn UTF-8:\n{}\n", (str), Ansi2utf(str, GetConsoleCP()));
     unfuckCout();
 }
 
 void pause() {
     PRINT_FUNC;
-    std::print("Press Enter to exit...\n");
+    print("Press Enter to exit...\n");
     std::cin.ignore(max_stream_size, '\n');
 }
 
 
 
 int main(int argc, char **argv) {
-    // 
-    std::print("{}\n", APP_NAME);
+    try {
+        HANDLE hcsb = CreateFileA("CONOUT$", GENERIC_WRITE | GENERIC_READ,
+        FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        CONSOLE_FONT_INFOEX cfi = {sizeof(cfi)};
+        cfi.nFont = 0;
+        SetCurrentConsoleFontEx(hcsb, FALSE, &cfi);
+    print("{}\n", APP_NAME);
     fs::path workdir{fs::current_path()};
-    std::print("Using files: {}\n", (workdir/"1-out(-in).txt"));
+    print("Using files: {}\n", (workdir/"1-out(-in).txt").string());
     
     // #if FILES_FOR_CIN_COUT == 1
     // ibuf = std::cin.rdbuf(ifile.rdbuf());
     // obuf = std::cout.rdbuf(ofile.rdbuf());
     // #endif
     
-    ofile.open(workdir/"1-out.txt", std::ios_base::trunc | std::ios_base::binary);
-    if (!ofile) { std::print("Could not open/create {}\n", (workdir/"1-out.txt")); }
-    ifile.open(workdir/"1-in.txt");
-    if (!ifile) { std::print("Could not open {}\n", (workdir/"1-in.txt")); }
+    ofile.open(workdir/"1-print-out.txt", std::ios_base::trunc | std::ios_base::binary);
+    if (!ofile) { print("Could not open/create {}\n", (workdir/"1-print-out.txt").string()); }
+    ifile.open(workdir/"1-print-in.txt");
+    if (!ifile) { print("Could not open {}\n", (workdir/"1-print-in.txt").string()); }
     else { ibuf = std::cin.rdbuf(ifile.rdbuf()); }
 
 #ifdef SET_STDOUT_VBUF_ENABLED
@@ -308,10 +339,15 @@ int main(int argc, char **argv) {
     pause();
 
 #ifdef CHANGE_CP_ENABLED
-    std::print("Returning original CP.\n");
-    if (!SetConsoleCP(original_cp)) { std::print("SetConsoleCP({}) failed: {}\n", original_cp, GetLastError()); }
-    if (!SetConsoleOutputCP(original_output_cp)) { std::print("SetConsoleOutputCP({}) failed: {}\n", original_output_cp, GetLastError()); }
+    print("Returning original CP.\n");
+    if (!SetConsoleCP(original_cp)) { print("SetConsoleCP({}) failed: {}\n", original_cp, GetLastError()); }
+    if (!SetConsoleOutputCP(original_output_cp)) { print("SetConsoleOutputCP({}) failed: {}\n", original_output_cp, GetLastError()); }
 #endif // CHANGE_CP_ENABLED
+            CloseHandle(hcsb);
+    } catch (const std::exception &e) {
+        std::printf("%s\n", e.what());
+        pause();
+    }
 
     return 0;
 }
