@@ -30,12 +30,12 @@
 
 #ifdef MIRROR_STDOUT_TO_A_FILE
     #define allout(arg) \
-        std::cout##arg; \
-        ofile##arg;
+        std::cout arg; \
+        ofile arg;
 #else
-    #define allout(arg) std::cout##arg;
+    #define allout(arg) std::cout arg;
 #endif // MIRROR_STDOUT_TO_A_FILE
-#define allprint(format_, ...) std::print(stdout, format_##__VA_OPT__(,) __VA_ARGS__); ofile << std::format(format_##__VA_OPT__(,) __VA_ARGS__) << std::flush;
+#define allprint(format_, ...) std::print(stdout, format_ __VA_OPT__(,) __VA_ARGS__);// ofile << std::format(format_##__VA_OPT__(,) __VA_ARGS__) << std::flush;
 #define PRINT_FUNC allprint("\n### {} ###\n", __func__);
 #define CIN_STATE(msg) allout(<< (msg) << std::cin.rdstate() << " (bad, fail, eof)=" << std::cin.badbit << std::cin.failbit << std::cin.eofbit <<  '\n');
 
@@ -185,7 +185,7 @@ int PrintUTF8() {
 
 int PrintUTF8data() {
     PRINT_FUNC;
-    std::print("{}\n", data_text_utf8);
+    std::print("{:.200c}\n", data_text_utf8);
     allprint("{:s}\n", data_text_utf8);
     unfuckCout();
     return 0;
