@@ -30,7 +30,7 @@ pause();
     SetConsoleOutputCP(original_output_cp)
 )";
 
-const char* STR_R_UTF8 = R"(UTF-8 string: tệp thử nghiệm Проверка джокера (хыхы буква ё) ¶§°ðѦѢѣѬѮ֍₽①⓭┗╉╢╳)";
+const char* STR_R_UTF8 = R"(UTF-8 (tệp thử nghiệm Проверка джокера (хыхы буква ё) ¶§°ðѦѢѣѬѮ֍₽①⓭┗╉╢╳))";
 const char* STR_R_UTF8_FILENAME = R"(ѦѢѣѬѮ.txt)";
 #include "text_1251.h"
 #include "text_oem.h"

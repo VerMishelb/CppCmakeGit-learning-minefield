@@ -16,10 +16,8 @@
 //////////////////
 
 #define MIRROR_STDOUT_TO_A_FILE
-// #define SET_C_LOCALE ".utf8"
-// #define SET_CPP_LOCALE ".utf8"
+// #define SETLOCALE_UTF8_ENABLED
 // #define CHANGE_CP_ENABLED
-// #define MANIFEST_ENABLED // THIS IS DEFINED IN CMAKELISTS!
 #define SET_STDOUT_VBUF_ENABLED
 #define PRINT_UTF8
 #define PRINT_1251
@@ -28,9 +26,11 @@
 // ~User options
 
 #ifdef MIRROR_STDOUT_TO_A_FILE
-    #define allout(arg) std::cout arg; ofile arg;
+    #define allout(arg) \
+        std::wcout##arg; \
+        ofile##arg;
 #else
-    #define allout(arg) std::cout arg;
+    #define allout(arg) std::wcout##arg;
 #endif // MIRROR_STDOUT_TO_A_FILE
 #define PRINT_FUNC allout(<< "\n### " << __func__ << " ###\n");
 #define CIN_STATE(msg) allout(<< (msg) << std::cin.rdstate() << " (bad, fail, eof)=" << std::cin.badbit << std::cin.failbit << std::cin.eofbit <<  '\n');
@@ -42,10 +42,10 @@
 #endif // MANIFEST_ENABLED
 
 namespace fs = std::filesystem;
-std::ofstream ofile{};
-std::ifstream ifile{};
+std::wofstream ofile{};
+std::wifstream ifile{};
 // std::streambuf *obuf{};
-std::streambuf *ibuf{};
+std::wstreambuf *ibuf{};
 const auto max_stream_size{std::numeric_limits<std::streamsize>::max()};
 
 const char APP_NAME[] =
@@ -53,14 +53,8 @@ const char APP_NAME[] =
     #ifdef MANIFEST_ENABLED
     "m"
     #endif
-    #ifdef SET_C_LOCALE
-    "l(" SET_C_LOCALE
-    #endif
-    #ifdef SET_CPP_LOCALE
-    "+" SET_CPP_LOCALE
-    #endif
-    #if defined(SET_C_LOCALE) || defined(SET_CPP_LOCALE)
-    ")"
+    #ifdef SETLOCALE_UTF8_ENABLED
+    "l"
     #endif
     #ifdef CHANGE_CP_ENABLED
     "s"
@@ -75,6 +69,17 @@ BOOL stupidCallback(LPSTR cp) {
     allout( << cp << ' ');
     return 1;
 }
+
+BOOL stupidCallbackwwwwwwiiiiidddeee(LPWSTR cp) {
+    allout( << cp << ' ');
+    return 1;
+}
+
+// CODEPAGE_ENUMPROCW stupid;
+// BOOL stupid(LPWSTR cp) {
+//     allout( << cp << ' ');
+//     return 1;
+// }
 
 std::string Ansi2utf(const std::string &src_ansi) {
     if (src_ansi.empty()) {
@@ -98,16 +103,6 @@ std::string Ansi2utf(const std::string &src_ansi) {
     return dst_utf;
 }
 
-void unfuckCout() {
-    if (!std::cout.good()) {
-        auto f_bad = (std::cout.rdstate() & std::cout.badbit) != 0;
-        auto f_fail = (std::cout.rdstate() & std::cout.failbit) != 0;
-        auto f_eof = (std::cout.rdstate() & std::cout.eofbit) != 0;
-        std::cout.clear();
-        std::cout << "\nstd::cout died :) (bad, fail, eof): " << f_bad << f_fail << f_eof << std::endl;
-    }
-}
-
 // void bootlegGetline() {
 
 // }
@@ -117,22 +112,18 @@ void unfuckCout() {
 ///////////
 
 void PrintCPInfo(unsigned int cp) {
-    CPINFOEXA cp_info{};
-    if (!GetCPInfoExA(cp, 0, &cp_info)) {
-        allout(<< "GetCPInfoExA() failed: " << GetLastError() << std::endl);
+    CPINFOEXW cp_info{};
+    if (!GetCPInfoExW(cp, 0, &cp_info)) {
+        allout(<< "GetCPInfoExW() failed: " << GetLastError() << std::endl);
         return;
     };
 
-    char unicode_default_char[4]={};
-    mbstate_t mbstate{};
-    size_t retval{};
-    wcrtomb_s(&retval, unicode_default_char, cp_info.UnicodeDefaultChar, &mbstate);
-
-    allout(<<
+    allout(
+        <<
         "cp_info.CodePage=" <<
         cp_info.CodePage <<
         "\ncp_info.CodePageName=" <<
-        ACP2U(cp_info.CodePageName) << 
+        cp_info.CodePageName << 
         "\ncp_info.DefaultChar=" <<
         cp_info.DefaultChar <<
         "\ncp_info.LeadByte=" <<
@@ -140,17 +131,16 @@ void PrintCPInfo(unsigned int cp) {
         "\ncp_info.MaxCharSize=" <<
         cp_info.MaxCharSize <<
         "\nunicode_default_char=" <<
-        unicode_default_char << std::endl;
+        cp_info.UnicodeDefaultChar << std::endl;
     );
-    unfuckCout();
 }
 
 void ListSupportedCodepages() {
     PRINT_FUNC;
     allout( << "Installed codepages:" << std::endl);
-    EnumSystemCodePagesA(stupidCallback, CP_INSTALLED);
+    EnumSystemCodePagesW(stupidCallbackwwwwwwiiiiidddeee, CP_INSTALLED);
     allout( << "\nSupported codepages:" << std::endl);
-    EnumSystemCodePagesA(stupidCallback, CP_SUPPORTED);
+    EnumSystemCodePagesW(stupidCallbackwwwwwwiiiiidddeee, CP_SUPPORTED);
 
     allout(<< std::endl << "\nCurrent stdin CP:\n");
     PrintCPInfo(GetConsoleCP());
@@ -161,48 +151,35 @@ void ListSupportedCodepages() {
     allout( << "\nCP_ACP:\n");
     PrintCPInfo(CP_ACP);
     allout(<< "\nCurrent locale=" << std::setlocale(LC_ALL, nullptr) << std::endl <<
-    "ofile.getloc=" << ofile.getloc().name() << std::endl);
-    unfuckCout();
+    "ofile.getloc=" << ofile.getloc().name().c_str() << std::endl);
 }
 
 int PrintUTF8() {
     PRINT_FUNC;
-    printf("Printf: %s\n", STR_R_UTF8);
-    printf_s("Printf: %s\n", STR_R_UTF8);
-    allout(<< "std::cout: " << STR_R_UTF8 << std::endl);
-    unfuckCout();
+    allout(<< STR_R_UTF8 << std::endl);
     return 0;
 }
 
 int PrintUTF8data() {
     PRINT_FUNC;
     allout(<< data_text_utf8 << std::endl);
-    unfuckCout();
     return 0;
 }
 int PrintCP1251data() {
     PRINT_FUNC;
     allout(<< data_text_1251 << std::endl);
-    unfuckCout();
     return 0;
 }
 int PrintOEM866data() {
     PRINT_FUNC;
     allout(<< data_text_oem << std::endl);
-    unfuckCout();
     return 0;
 }
 
 int PrintArgs(int argc, char **argv) {
     PRINT_FUNC;
     for (auto i = 0; i < argc; i++) {
-    #ifdef MANIFEST_ENABLED
-        const std::string arg{argv[i]};
-    #else
-        const std::string arg{Ansi2utf(argv[i])};
-    #endif
-        allout(<< "argv[" << i << "]:" << std::endl << arg << std::endl);
-        unfuckCout();
+        allout(<< "argv[" << i << "]:" << std::endl << argv[i] << std::endl);
     }
     return 0;
 }
@@ -210,19 +187,18 @@ int PrintArgs(int argc, char **argv) {
 void InputTest() {
     PRINT_FUNC;
     allout(<< "Input test! Enter your string:" << std::endl);
-    std::string str{};
-    std::getline(std::cin, str);
+    std::wstring str{};
+    std::getline(std::wcin, str);
     // std::cin >> str;
     // std::cin.ignore(1, '\n');
     // CIN_STATE("cin state after cin: ");
-    allout(<< "\nEntered string:" << std::endl << (str) << std::endl);
-    unfuckCout();
+    allout(<< L"\nEntered string:" << std::endl << (str) << std::endl);
 }
 
 void pause() {
     PRINT_FUNC;
-    std::cout << "Press Enter to exit...\n";
-    std::cin.ignore(max_stream_size, '\n');
+    std::wcout << "Press Enter to exit...\n";
+    std::wcin.ignore(max_stream_size, '\n');
 }
 
 /*
@@ -282,8 +258,10 @@ Moral of the story:
   The supported codepages can be listed using an EnumSystemCodePagesA(stupidCallback, CP_INSTALLED); call, which is in ListSupportedCodepages();
   It also prints the current value.
 
-- std::setlocale(LC_ALL, ".utf-8"); only affects what default C functions (e.g. mkdir()) expect. This may change the behaviour of printf.
+- std::setlocale(LC_ALL, ".utf-8"); has no effect on encoding pre-Win10 1803 (NOT 1903), but probably does the same thing that the manifest does.
+  Logically, this makes the app expect all C-strings to be UTF-8, which is good because we still have no sane way of working with u8string and char8_t...
   For this to have the slightest chance to work the app MUST be linked statically, or the call will fail on anything before Win 10 1803.
+
 
 
 About this application:
@@ -310,44 +288,42 @@ Pre-Win 10: out_cp = utf8, in_cp = GetACP()
 */
 
 int main(int argc, char **argv) {
-    // 
-    std::cout << APP_NAME << '\n';
+    // std::setlocale(LC_ALL, ".utf8");
+    std::wcout << APP_NAME << '\n';
     fs::path workdir{fs::current_path()};
-    std::cout << "Using files: " << (workdir/"1-print-out(-in).txt") << std::endl;
+    std::wcout << L"Using files: " << (workdir/L"1w-out(-in).txt") << std::endl;
     
     // #if FILES_FOR_CIN_COUT == 1
     // ibuf = std::cin.rdbuf(ifile.rdbuf());
     // obuf = std::cout.rdbuf(ofile.rdbuf());
     // #endif
     
-    ofile.open(workdir/"1-print-out.txt", std::ios_base::trunc | std::ios_base::binary);
-    if (!ofile) { std::cout << "Could not open/create " << (workdir/"1-print-out.txt") << std::endl; }
-    ifile.open(workdir/"1-print-in.txt");
-    if (!ifile) { std::cout << "Could not open " << (workdir/"1-print-in.txt") << std::endl; }
-    else { ibuf = std::cin.rdbuf(ifile.rdbuf()); }
+    ofile.open(workdir/L"1w-out.txt", std::ios_base::trunc | std::ios_base::binary);
+    if (!ofile) { std::wcout << L"Could not open/create " << (workdir/L"1w-out.txt") << std::endl; }
+    ifile.open(workdir/L"1w-in.txt");
+    if (!ifile) { std::wcout << L"Could not open " << (workdir/L"1w-in.txt") << std::endl; }
+    else { ibuf = std::wcin.rdbuf(ifile.rdbuf()); }
 
+#ifdef SETLOCALE_UTF8_ENABLED
+    allout(<< "SETLOCALE_UTF8_ENABLED defined.\n");
 #ifdef SET_STDOUT_VBUF_ENABLED
     setvbuf(stdout, nullptr, _IOFBF, 1000); // Is there a "correct" C++ way of doing this?
-    std::cout << "SET_STDOUT_VBUF_ENABLED. Don't forget to std::flush." << std::endl;
+    std::wcout << "SET_STDOUT_VBUF_ENABLED. Don't forget to std::flush." << std::endl;
 #endif // SET_STDOUT_VBUF_ENABLED
-#ifdef SET_C_LOCALE
-    allout(<< "SET_C_LOCALE defined as " << SET_C_LOCALE << ".\n");
-    std::setlocale(LC_ALL, SET_C_LOCALE);
-#endif // SET_C_LOCALE
-#ifdef SET_CPP_LOCALE
-    std::locale::global(std::locale(SET_CPP_LOCALE)); // also does std::setlocale(LC_ALL, ".utf8");
-    allout(<< "New global C++ locale: " << std::locale().name() << std::endl);
+
+    std::locale::global(std::locale("")); // also does std::setlocale(LC_ALL, ".utf8");
+    allout(<< "New global C++ locale: " << std::locale().name().c_str() << std::endl);
     allout(<< "The 1234567890 test before imbue:\n>" << 1234567890 << "<" << std::endl);
-    allout(<< "Locale: " << std::locale().name() << std::endl;);
-    std::cout.imbue(std::locale());
-    ofile.imbue(std::locale());
+    allout(<< "Locale: " << std::locale().name().c_str() << std::endl;);
+    allout(.imbue(std::locale()));
     allout(<< "The 1234567890 test after imbue:\n>" << 1234567890 << "<" << std::endl);
 
+    // allout(<< STR_INSTRUCTIONS << std::endl);
     ifile.imbue(std::locale());
-    std::cin.imbue(std::locale());
-    allout(<< "New C++ cout locale: std::cout.getloc().name()=" << std::cout.getloc().name() << std::endl);
-#endif // SETLOCALE_UTF8_ENABLED
+    std::wcin.imbue(std::locale());
     allout(<< "Current C locale std::setlocale(LC_ALL, nullptr)=" << std::setlocale(LC_ALL, nullptr) << std::endl);
+    allout(<< "New C++ cout locale: std::cout.getloc().name()=" << std::wcout.getloc().name().c_str() << std::endl);
+#endif // SETLOCALE_UTF8_ENABLED
 
 #ifdef CHANGE_CP_ENABLED
     allout(<< "CHANGE_CP_ENABLED defined. Changing CP to 65001." << std::endl);
@@ -360,7 +336,7 @@ int main(int argc, char **argv) {
 #endif // CHANGE_CP_ENABLED
 
 #ifdef MANIFEST_ENABLED
-    allout(<< "MANIFEST_ENABLED. Win 10+ will treat argv[] and WinAPI \"A\" functions as UTF-8." << std::endl);
+    allout(<< "MANIFEST_ENABLED. Win 10+ will treat argv[] as UTF-8." << std::endl);
 #endif
 
     ListSupportedCodepages();
@@ -381,9 +357,9 @@ int main(int argc, char **argv) {
     pause();
 
 #ifdef CHANGE_CP_ENABLED
-    std::cout << "Returning original CP." << std::endl;
-    if (!SetConsoleCP(original_cp)) { std::cout << "SetConsoleCP(" << original_cp <<") failed: " << GetLastError() << std::endl; }
-    if (!SetConsoleOutputCP(original_output_cp)) { std::cout << "SetConsoleOutputCP(" << original_output_cp << ") failed:" << GetLastError() << std::endl; }
+    std::wcout << "Returning original CP." << std::endl;
+    if (!SetConsoleCP(original_cp)) { std::wcout << "SetConsoleCP(" << original_cp <<") failed: " << GetLastError() << std::endl; }
+    if (!SetConsoleOutputCP(original_output_cp)) { std::wcout << "SetConsoleOutputCP(" << original_output_cp << ") failed:" << GetLastError() << std::endl; }
 #endif // CHANGE_CP_ENABLED
 
     return 0;
